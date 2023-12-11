@@ -32,8 +32,8 @@ const uniswapSchema = new mongoose.Schema({
   description: String,
   img: String,
   links: [{
-    Source: String,
-    Twitter: String,
+    name: String,
+    url: String,
   }],
   creationTime: {
     type: Number,
@@ -48,8 +48,8 @@ const binanceSchema = new mongoose.Schema({
   description: String,
   img: String,
   links: [{
-    Source: String,
-    Twitter: String,
+    name: String,
+    url: String,
   }],
   creationTime: {
     type: Number,
@@ -64,8 +64,8 @@ const newsSchema = new mongoose.Schema({
   description: String,
   img: String,
   links: [{
-    Source: String,
-    Twitter: String,
+    name: String,
+    url: String,
   }],
   creationTime: {
     type: Number,
@@ -80,8 +80,8 @@ const degenSchema = new mongoose.Schema({
   description: String,
   img: String,
   links: [{
-    Source: String,
-    Twitter: String,
+    name: String,
+    url: String,
   }],
   creationTime: {
     type: Number,
