@@ -2,10 +2,11 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const WebSocket = require('ws'); // Add this line
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 const apiKey = process.env.apiKey;
 
 app.use(bodyParser.json());
@@ -91,6 +92,23 @@ const degenSchema = new mongoose.Schema({
 
 const DegenData = mongoose.model('DegenData', degenSchema);
 
+// WebSocket server
+const server = app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
+
+const wss = new WebSocket.Server({ noServer: true });
+wss.on('connection', (ws) => {
+  ws.on('message', (message) => {
+    // Broadcast the message to all clients
+    wss.clients.forEach((client) => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  });
+});
+
 const removeOldData = async () => {
   const currentTime = new Date().getTime();
   const thirtyDaysAgo = currentTime - 30 * 24 * 60 * 60 * 1000;
@@ -153,9 +171,17 @@ app.get('/alpha-users', async (req, res) => {
 app.post('/uniswap', apiKeyMiddleware, async (req, res) => {
   const newMessage = req.body;
   newMessage.creationTime = new Date().getTime();
+  newMessage.endpoint = '/uniswap'; // Add endpoint information
 
   const uniswapData = new UniswapData(newMessage);
   await uniswapData.save();
+
+  // Send the new message to all connected clients
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(newMessage));
+    }
+  });
 
   console.log('Data stored:', newMessage);
   res.json(newMessage);
@@ -169,9 +195,17 @@ app.get('/uniswap', async (req, res) => {
 app.post('/binance', apiKeyMiddleware, async (req, res) => {
   const newMessage = req.body;
   newMessage.creationTime = new Date().getTime();
+  newMessage.endpoint = '/binance'; // Add endpoint information
 
   const binanceData = new BinanceData(newMessage);
   await binanceData.save();
+
+  // Send the new message to all connected clients
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(newMessage));
+    }
+  });
 
   console.log('Data stored:', newMessage);
   res.json(newMessage);
@@ -185,9 +219,17 @@ app.get('/binance', async (req, res) => {
 app.post('/news', apiKeyMiddleware, async (req, res) => {
   const newMessage = req.body;
   newMessage.creationTime = new Date().getTime();
+  newMessage.endpoint = '/news'; // Add endpoint information
 
   const newsData = new NewsData(newMessage);
   await newsData.save();
+
+  // Send the new message to all connected clients
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(newMessage));
+    }
+  });
 
   console.log('Data stored:', newMessage);
   res.json(newMessage);
@@ -201,9 +243,17 @@ app.get('/news', async (req, res) => {
 app.post('/degen', apiKeyMiddleware, async (req, res) => {
   const newMessage = req.body;
   newMessage.creationTime = new Date().getTime();
+  newMessage.endpoint = '/degen'; // Add endpoint information
 
   const degenData = new DegenData(newMessage);
   await degenData.save();
+
+  // Send the new message to all connected clients
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify(newMessage));
+    }
+  });
 
   console.log('Data stored:', newMessage);
   res.json(newMessage);
@@ -214,6 +264,9 @@ app.get('/degen', async (req, res) => {
   res.json(degenData);
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+// Attach the WebSocket server to the existing HTTP server
+server.on('upgrade', (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit('connection', ws, request);
+  });
 });
